@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gala Sense - Weighing Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .sidebar { 
+            background-color: #2c3e50; 
+            height: 100vh; 
+            padding-top: 20px; 
+            color: white; 
+            position: fixed;
+            overflow-y: auto;
+            width: 250px;
+        }
+        .main-content { 
+            padding: 20px; 
+            background-color: #f8f9fa; 
+            min-height: 100vh; 
+            margin-left: 250px;
+        }
+        .nav-link { 
+            color: #ecf0f1 !important; 
+            border-radius: 5px; 
+            margin: 2px 0; 
+        }
+        .nav-link:hover, .nav-link.active { 
+            background-color: #3498db !important; 
+            color: white !important; 
+        }
+        .form-section { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 10px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+            margin-bottom: 20px; 
+        }
+        .form-group { 
+            margin-bottom: 1rem; 
+        }
+        .weighing-slip { 
+            border: 2px solid #000; 
+            padding: 20px; 
+            margin: 10px 0; 
+            font-family: 'Courier New', monospace; 
+            background: white; 
+        }
+        .slip-copy { 
+            border-bottom: 2px dashed #ccc; 
+            padding-bottom: 20px; 
+            margin-bottom: 20px; 
+        }
+        @media print { 
+            .no-print { 
+                display: none !important; 
+            } 
+            .weighing-slip { 
+                border: 2px solid #000 !important; 
+                break-inside: avoid; 
+            } 
+        }
+        .dropdown-menu {
+            background-color: #34495e;
+        }
+        .dropdown-item {
+            color: #ecf0f1;
+        }
+        .dropdown-item:hover {
+            background-color: #3498db;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar Navigation -->
+            <div class="col-md-3 col-lg-2 sidebar">
+                <h4 class="text-center mb-4">Gala Sense</h4>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" onclick="showSection('dashboard')">
+                            📊 Dashboard
+                        </a>
+                    </li>
+                    
+                    <!-- Master Group -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                            📁 Master Group
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="showSection('partyMaster')">Party Master</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="showSection('materialMaster')">Material Master</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="showSection('vehicleMaster')">Vehicle Master</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="showSection('siteMaster')">Site Master</a></li>
+                        </ul>
+                    </li>
+
+                    <!-- Sales Group -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                            💰 Sales Group
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="showSection('autoSales')">Auto Sales</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="showSection('saleIn')">Sale In</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="showSection('saleOut')">Sale Out</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="showSection('directSale')">Direct Sale</a></li>
+                        </ul>
+                    </li>
+
+                    <!-- Purchase Group -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showSection('purchaseGroup')">
+                            🛒 Purchase Group
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showSection('reports')">
+                            📈 Reports
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 main-content">
+                <!-- Dashboard -->
+                <div id="dashboard" class="content-section">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3>Dashboard</h3>
+                        <div class="btn-group">
+                            <button class="btn btn-outline-primary" onclick="showSection('autoSales')">New Sale</button>
+                            <button class="btn btn-outline-success" onclick="showSection('purchaseGroup')">New Purchase</button>
+                            <button class="btn btn-warning" onclick="downloadBackup()">📥 Backup Data</button>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="card text-white bg-primary mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">Today's Sales</h5>
+                                    <h2 class="card-text" id="todaySales">0</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-white bg-success mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">Today's Purchases</h5>
+                                    <h2 class="card-text" id="todayPurchases">0</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-white bg-warning mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">Current Stock</h5>
+                                    <h2 class="card-text" id="currentStock">0.00 Ton</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-white bg-info mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">Active Vehicles</h5>
+                                    <h2 class="card-text" id="activeVehicles">0</h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Auto Sales Form -->
+                <div id="autoSales" class="content-section" style="display: none;">
+                    <div class="form-section">
+                        <h3>Auto Sales</h3>
+                        <form id="autoSalesForm">
+                            <div class="form-group">
+                                <label class="form-label">Company *</label>
+                                <input type="text" class="form-control" id="salesCompany" required value="GALA SENSE">
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-label">Date *</label>
+                                        <input type="date" class="form-control" id="salesDate" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-label">Time *</label>
+                                        <input type="time" class="form-control" id="salesTime" required>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Vehicle No *</label>
+                                <input type="text" class="form-control" id="salesVehicleNo" list="vehicleListOptions" required placeholder="Enter vehicle number">
+                                <datalist id="vehicleListOptions"></datalist>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Driver Name</label>
+                                <input type="text" class="form-control" id="salesDriverName" placeholder="Enter driver name">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Customer Name *</label>
+                                <input type="text" class="form-control" id="salesCustomerName" list="partyListOptions" required placeholder="Select or enter customer name">
+                                <datalist id="partyListOptions"></datalist>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Customer Wise Site *</label>
+                                <input type="text" class="form-control" id="salesSite" list="siteListOptions" required placeholder="Select or enter site">
+                                <datalist id="siteListOptions"></datalist>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Item *</label>
+                                <input type="text" class="form-control" id="salesItem" list="materialListOptions" required placeholder="Select or enter material">
+                                <datalist id="materialListOptions"></datalist>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label class="form-label">Gross Weight *</label>
+                                        <input type="number" class="form-control" id="salesGrossWeight" required oninput="calculateNetWeight('sales')" placeholder="0">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label class="form-label">Tare Weight *</label>
+                                        <input type="number" class="form-control" id="salesTareWeight" required oninput="calculateNetWeight('sales')" placeholder="0">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label class="form-label">Net Weight</label>
+                                        <input type="number" class="form-control" id="salesNetWeight" readonly placeholder="0">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Royalty Name</label>
+                                <input type="text" class="form-control" id="salesRoyaltyName" placeholder="Enter royalty name">
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-label">Royalty Pass No *</label>
+                                        <input type="text" class="form-control" id="salesRoyaltyPassNo" required placeholder="Enter pass number">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-label">Royalty Weight *</label>
+                                        <input type="number" class="form-control" id="salesRoyaltyWeight" required placeholder="0">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Vehicle Type *</label>
+                                <select class="form-select" id="salesVehicleType" required>
+                                    <option value="">Select Vehicle Type</option>
+                                    <option value="Dump Truck">Dump Truck</option>
+                                    <option value="Tractor">Tractor</option>
+                                    <option value="Trailer">Trailer</option>
+                                    <option value="Tipper">Tipper</option>
+                                    <option value=" Truck">Truck</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Narration</label>
+                                <textarea class="form-control" id="salesNarration" rows="2" placeholder="Additional notes..."></textarea>
+                            </div>
+                            
+                            <div class="mt-4">
+                                <button type="button" class="btn btn-primary me-2" onclick="saveTransaction('sales', true)">
+                                    💾 Save & Print
+                                </button>
+                                <button type="button" class="btn btn-success me-2" onclick="saveTransaction('sales', false)">
+                                    💾 Save Only
+                                </button>
+                                <button type="reset" class="btn btn-secondary" onclick="clearForm('sales')">
+                                    🗑️ Clear Form
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Purchase Group -->
+                <div id="purchaseGroup" class="content-section" style="display: none;">
+                    <div class="form-section">
+                        <h3>Purchase Group</h3>
+                        <form id="purchaseForm">
+                            <div class="form-group">
+                                <label class="form-label">Company *</label>
+                                <input type="text" class="form-control" id="purchaseCompany" required value="GALA SENSE">
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-label">Date *</label>
+                                        <input type="date" class="form-control" id="purchaseDate" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-label">Time *</label>
+                                        <input type="time" class="form-control" id="purchaseTime" required>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Vehicle No *</label>
+                                <input type="text" class="form-control" id="purchaseVehicleNo" list="vehicleListOptions" required placeholder="Enter vehicle number">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Driver Name</label>
+                                <input type="text" class="form-control" id="purchaseDriverName" placeholder="Enter driver name">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Supplier Name *</label>
+                                <input type="text" class="form-control" id="purchaseSupplierName" list="partyListOptions" required placeholder="Select or enter supplier name">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Site *</label>
+                                <input type="text" class="form-control" id="purchaseSite" list="siteListOptions" required placeholder="Select or enter site">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Item *</label>
+                                <input type="text" class="form-control" id="purchaseItem" list="materialListOptions" required placeholder="Select or enter material">
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label class="form-label">Gross Weight *</label>
+                                        <input type="number" class="form-control" id="purchaseGrossWeight" required oninput="calculateNetWeight('purchase')" placeholder="0">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label class="form-label">Tare Weight *</label>
+                                        <input type="number" class="form-control" id="purchaseTareWeight" required oninput="calculateNetWeight('purchase')" placeholder="0">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label class="form-label">Net Weight</label>
+                                        <input type="number" class="form-control" id="purchaseNetWeight" readonly placeholder="0">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Royalty Name</label>
+                                <input type="text" class="form-control" id="purchaseRoyaltyName" placeholder="Enter royalty name">
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-label">Royalty Pass No *</label>
+                                        <input type="text" class="form-control" id="purchaseRoyaltyPassNo" required placeholder="Enter pass number">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-label">Royalty Weight *</label>
+                                        <input type="number" class="form-control" id="purchaseRoyaltyWeight" required placeholder="0">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Vehicle Type *</label>
+                                <select class="form-select" id="purchaseVehicleType" required>
+                                    <option value="">Select Vehicle Type</option>
+                                    <option value="Dump Truck">Dump Truck</option>
+                                    <option value="Tractor">Tractor</option>
+                                    <option value="Trailer">Trailer</option>
+                                    <option value="Tipper">Tipper</option>
+                                    <option value="Truck">Truck</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Narration</label>
+                                <textarea class="form-control" id="purchaseNarration" rows="2" placeholder="Additional notes..."></textarea>
+                            </div>
+                            
+                            <div class="mt-4">
+                                <button type="button" class="btn btn-primary me-2" onclick="saveTransaction('purchase', true)">
+                                    💾 Save & Print
+                                </button>
+                                <button type="button" class="btn btn-success me-2" onclick="saveTransaction('purchase', false)">
+                                    💾 Save Only
+                                </button>
+                                <button type="reset" class="btn btn-secondary" onclick="clearForm('purchase')">
+                                    🗑️ Clear Form
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Reports Section -->
+                <div id="reports" class="content-section" style="display: none;">
+                    <div class="form-section">
+                        <h3>Reports</h3>
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <label>From Date</label>
+                                <input type="date" class="form-control" id="fromDate">
+                            </div>
+                            <div class="col-md-3">
+                                <label>To Date</label>
+                                <input type="date" class="form-control" id="toDate">
+                            </div>
+                            <div class="col-md-3">
+                                <label>Transaction Type</label>
+                                <select class="form-select" id="reportType">
+                                    <option value="all">All Transactions</option>
+                                    <option value="sales">Sales</option>
+                                    <option value="purchase">Purchase</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">&nbsp;</label>
+                                <button class="btn btn-primary w-100" onclick="generateReport()">Generate Report</button>
+                            </div>
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Type</th>
+                                        <th>Vehicle No</th>
+                                        <th>Party</th>
+                                        <th>Item</th>
+                                        <th>Gross Wt</th>
+                                        <th>Tare Wt</th>
+                                        <th>Net Wt</th>
+                                        <th>Site</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reportResults">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Weighing Slip Modal -->
+    <div class="modal fade" id="slipModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Weighing Slip - 3 Copies</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="slipContent">
+                </div>
+                <div class="modal-footer no-print">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="printSlip()">Print Slip</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // ========== INITIALIZATION ==========
+        function initializeStorage() {
+            if (!localStorage.getItem('parties')) localStorage.setItem('parties', '[]');
+            if (!localStorage.getItem('materials')) localStorage.setItem('materials', '[]');
+            if (!localStorage.getItem('vehicles')) localStorage.setItem('vehicles', '[]');
+            if (!localStorage.getItem('sites')) localStorage.setItem('sites', '[]');
+            if (!localStorage.getItem('transactions')) localStorage.setItem('transactions', '[]');
+            
+            // Add sample data if empty
+            if (JSON.parse(localStorage.getItem('parties')).length === 0) {
+                const sampleParties = [
+                    { id: 1, name: "CASH SALES", contact: "", mobile: "", address: "", gst: "" },
+                    { id: 2, name: "SHIV ENTERPRISE", contact: "Raj Sharma", mobile: "9876543210", address: "Mumbai", gst: "GST123" },
+                    { id: 3, name: "DKASHTI ENTERPRISE", contact: "Mohan Patel", mobile: "9876543211", address: "Delhi", gst: "GST124" }
+                ];
+                localStorage.setItem('parties', JSON.stringify(sampleParties));
+            }
+            
+            if (JSON.parse(localStorage.getItem('materials')).length === 0) {
+                const sampleMaterials = [
+                    { id: 1, name: "BLACK SAND", code: "BS01", rate: "1500", description: "Fine Black Sand" },
+                    { id: 2, name: "GRAVEL", code: "GR01", rate: "1200", description: "Construction Gravel" },
+                    { id: 3, name: "STONE", code: "ST01", rate: "1800", description: "Building Stone" }
+                ];
+                localStorage.setItem('materials', JSON.stringify(sampleMaterials));
+            }
+        }
+
+        // ========== SECTION MANAGEMENT ==========
+        function showSection(sectionName) {
+            console.log('Showing section:', sectionName);
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.style.display = 'none';
+            });
+            document.getElementById(sectionName).style.display = 'block';
+            
+            // Update navigation active state
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Update datalists when showing forms
+            if (sectionName === 'autoSales' || sectionName === 'purchaseGroup') {
+                updateDatalists();
+                setCurrentDateTime(sectionName === 'autoSales' ? 'sales' : 'purchase');
+            }
+            
+            // Load data when showing sections
+            if (sectionName === 'dashboard') updateDashboard();
+            if (sectionName === 'reports') generateReport();
+        }
+
+        function setCurrentDateTime(type) {
+            const now = new Date();
+            const date = now.toISOString().split('T')[0];
+            const time = now.toTimeString().slice(0,5);
+            
+            document.getElementById(type + 'Date').value = date;
+            document.getElementById(type + 'Time').value = time;
+        }
+
+        // ========== CALCULATION FUNCTIONS ==========
+        function calculateNetWeight(type) {
+            console.log('Calculating net weight for:', type);
+            const gross = parseFloat(document.getElementById(type + 'GrossWeight').value) || 0;
+            const tare = parseFloat(document.getElementById(type + 'TareWeight').value) || 0;
+            const net = gross - tare;
+            document.getElementById(type + 'NetWeight').value = net > 0 ? net.toFixed(2) : '0.00';
+        }
+
+        // ========== DATA MANAGEMENT ==========
+        function updateDatalists() {
+            console.log('Updating datalists...');
+            const parties = JSON.parse(localStorage.getItem('parties') || '[]');
+            const materials = JSON.parse(localStorage.getItem('materials') || '[]');
+            const vehicles = JSON.parse(localStorage.getItem('vehicles') || '[]');
+            const sites = JSON.parse(localStorage.getItem('sites') || '[]');
+            
+            // Update party datalist
+            let partyOptions = '';
+            parties.forEach(party => {
+                partyOptions += `<option value="${party.name}">`;
+            });
+            document.getElementById('partyListOptions').innerHTML = partyOptions;
+            
+            // Update material datalist
+            let materialOptions = '';
+            materials.forEach(material => {
+                materialOptions += `<option value="${material.name}">`;
+            });
+            document.getElementById('materialListOptions').innerHTML = materialOptions;
+            
+            // Update vehicle datalist
+            let vehicleOptions = '';
+            vehicles.forEach(vehicle => {
+                vehicleOptions += `<option value="${vehicle.number}">`;
+            });
+            document.getElementById('vehicleListOptions').innerHTML = vehicleOptions;
+            
+            // Update site datalist
+            let siteOptions = '';
+            sites.forEach(site => {
+                siteOptions += `<option value="${site.name}">`;
+            });
+            document.getElementById('siteListOptions').innerHTML = siteOptions;
+        }
+
+        // ========== TRANSACTION MANAGEMENT ==========
+        function saveTransaction(type, shouldPrint) {
+            console.log('Saving transaction:', type, 'Print:', shouldPrint);
+            
+            // Validate form
+            const form = document.getElementById(type + 'Form');
+            if (!form.checkValidity()) {
+                alert('❌ Please fill all required fields!');
+                form.reportValidity();
+                return;
+            }
+
+            // Validate weights
+            const grossWeight = parseFloat(document.getElementById(type + 'GrossWeight').value);
+            const tareWeight = parseFloat(document.getElementById(type + 'TareWeight').value);
+            
+            if (grossWeight <= tareWeight) {
+                alert('❌ Gross weight must be greater than tare weight!');
+                return;
+            }
+
+            const transaction = {
+                id: Date.now(),
+                type: type,
+                company: document.getElementById(type + 'Company').value,
+                date: document.getElementById(type + 'Date').value,
+                time: document.getElementById(type + 'Time').value,
+                vehicleNo: document.getElementById(type + 'VehicleNo').value,
+                driverName: document.getElementById(type + 'DriverName').value,
+                partyName: document.getElementById(type + (type === 'sales' ? 'Customer' : 'Supplier') + 'Name').value,
+                site: document.getElementById(type + 'Site').value,
+                item: document.getElementById(type + 'Item').value,
+                grossWeight: grossWeight,
+                tareWeight: tareWeight,
+                netWeight: document.getElementById(type + 'NetWeight').value,
+                royaltyName: document.getElementById(type + 'RoyaltyName').value,
+                royaltyPassNo: document.getElementById(type + 'RoyaltyPassNo').value,
+                royaltyWeight: document.getElementById(type + 'RoyaltyWeight').value,
+                vehicleType: document.getElementById(type + 'VehicleType').value,
+                narration: document.getElementById(type + 'Narration').value,
+                timestamp: new Date().toISOString()
+            };
+
+            let transactions = JSON.parse(localStorage.getItem('transactions') || '[]');
+            transactions.push(transaction);
+            localStorage.setItem('transactions', JSON.stringify(transactions));
+
+            if (shouldPrint) {
+                generateWeighingSlip(transaction);
+            } else {
+                alert('✅ Transaction saved successfully!');
+                clearForm(type);
+            }
+            
+            updateDashboard();
+        }
+
+        function clearForm(type) {
+            document.getElementById(type + 'Form').reset();
+            document.getElementById(type + 'NetWeight').value = '';
+            setCurrentDateTime(type);
+        }
+
+        // ========== SLIP GENERATION & PRINTING ==========
+        function generateWeighingSlip(data) {
+            console.log('Generating slip for:', data);
+            let slipHTML = '';
+            
+            for (let copy = 1; copy <= 3; copy++) {
+                slipHTML += `
+                    <div class="weighing-slip slip-copy">
+                        <div class="text-center mb-3">
+                            <h4>GALA SENSE</h4>
+                            <h6>WEIGHING SLIP - ${data.type.toUpperCase()} - COPY ${copy}</h6>
+                            <hr>
+                        </div>
+                        <div class="row">
+                            <div class="col-6">
+                                <strong>Company:</strong> ${data.company}<br>
+                                <strong>Date:</strong> ${data.date}<br>
+                                <strong>Time:</strong> ${data.time}<br>
+                                <strong>Vehicle No:</strong> ${data.vehicleNo}<br>
+                                <strong>Driver:</strong> ${data.driverName || 'N/A'}
+                            </div>
+                            <div class="col-6">
+                                <strong>${data.type === 'sales' ? 'Customer' : 'Supplier'}:</strong> ${data.partyName}<br>
+                                <strong>Site:</strong> ${data.site}<br>
+                                <strong>Item:</strong> ${data.item}<br>
+                                <strong>Vehicle Type:</strong> ${data.vehicleType}
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <strong>Gross Weight</strong><br>
+                                <h5>${data.grossWeight} Kg</h5>
+                            </div>
+                            <div class="col-4">
+                                <strong>Tare Weight</strong><br>
+                                <h5>${data.tareWeight} Kg</h5>
+                            </div>
+                            <div class="col-4">
+                                <strong>Net Weight</strong><br>
+                                <h5>${data.netWeight} Kg</h5>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="row">
+                            <div class="col-6">
+                                <strong>Royalty Name:</strong> ${data.royaltyName || 'N/A'}<br>
+                                <strong>Royalty Pass No:</strong> ${data.royaltyPassNo}
+                            </div>
+                            <div class="col-6">
+                                <strong>Royalty Weight:</strong> ${data.royaltyWeight} Ton<br>
+                                <strong>Narration:</strong> ${data.narration || 'N/A'}
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="text-center mt-3">
+                            <small>Generated on: ${new Date().toLocaleString()}</small>
+                        </div>
+                    </div>
+                `;
+            }
+
+            document.getElementById('slipContent').innerHTML = slipHTML;
+            const slipModal = new bootstrap.Modal(document.getElementById('slipModal'));
+            slipModal.show();
+        }
+
+        function printSlip() {
+            console.log('Printing slip...');
+            const slipContent = document.getElementById('slipContent').innerHTML;
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Weighing Slip - Gala Sense</title>
+                    <style>
+                        body { 
+                            font-family: Arial, sans-serif; 
+                            margin: 10mm;
+                            color: #000;
+                        }
+                        .weighing-slip { 
+                            border: 2px solid #000; 
+                            padding: 15px; 
+                            margin: 10px 0; 
+                            page-break-after: always;
+                        }
+                        .slip-copy { 
+                            border-bottom: 2px dashed #ccc; 
+                            padding-bottom: 15px; 
+                            margin-bottom: 15px;
+                        }
+                        .text-center { text-align: center; }
+                        .row { display: flex; flex-wrap: wrap; }
+                        .col-6 { flex: 0 0 50%; }
+                        .col-4 { flex: 0 0 33.333%; }
+                        hr { border-top: 1px solid #000; margin: 10px 0; }
+                        h4, h5, h6 { margin: 5px 0; }
+                        @media print {
+                            body { margin: 0; }
+                        }
+                    </style>
+                </head>
+                <body>${slipContent}</body>
+                </html>
+            `);
+            
+            printWindow.document.close();
+            printWindow.focus();
+            
+            setTimeout(() => {
+                printWindow.print();
+                // printWindow.close();
+            }, 500);
+        }
+
+        // ========== DASHBOARD & REPORTS ==========
+        function updateDashboard() {
+            const transactions = JSON.parse(localStorage.getItem('transactions') || '[]');
+            const today = new Date().toISOString().split('T')[0];
+            
+            const todaySales = transactions.filter(t => t.type === 'sales' && t.date === today).length;
+            const todayPurchases = transactions.filter(t => t.type === 'purchase' && t.date === today).length;
+            const vehicles = JSON.parse(localStorage.getItem('vehicles') || '[]').length;
+            
+            let totalStock = 0;
+            transactions.forEach(t => {
+                if (t.type === 'purchase') totalStock += parseFloat(t.netWeight) || 0;
+                if (t.type === 'sales') totalStock -= parseFloat(t.netWeight) || 0;
+            });
+            
+            document.getElementById('todaySales').textContent = todaySales;
+            document.getElementById('todayPurchases').textContent = todayPurchases;
+            document.getElementById('activeVehicles').textContent = vehicles;
+            document.getElementById('currentStock').textContent = (totalStock / 1000).toFixed(2) + ' Ton';
+        }
+
+        function generateReport() {
+            const fromDate = document.getElementById('fromDate').value;
+            const toDate = document.getElementById('toDate').value;
+            const reportType = document.getElementById('reportType').value;
+            
+            let transactions = JSON.parse(localStorage.getItem('transactions') || '[]');
+            
+            let filteredTransactions = transactions.filter(t => {
+                let match = true;
+                if (fromDate && t.date < fromDate) match = false;
+                if (toDate && t.date > toDate) match = false;
+                if (reportType !== 'all' && t.type !== reportType) match = false;
+                return match;
+            });
+
+            displayReportResults(filteredTransactions);
+        }
+
+        function displayReportResults(transactions) {
+            const tbody = document.getElementById('reportResults');
+            tbody.innerHTML = '';
+
+            if (transactions.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" class="text-center">No transactions found</td></tr>';
+                return;
+            }
+
+            transactions.forEach(transaction => {
+                const row = `
+                    <tr>
+                        <td>${transaction.date}</td>
+                        <td><span class="badge ${transaction.type === 'sales' ? 'bg-success' : 'bg-primary'}">${transaction.type.toUpperCase()}</span></td>
+                        <td>${transaction.vehicleNo}</td>
+                        <td>${transaction.partyName}</td>
+                        <td>${transaction.item}</td>
+                        <td>${transaction.grossWeight}</td>
+                        <td>${transaction.tareWeight}</td>
+                        <td>${transaction.netWeight}</td>
+                        <td>${transaction.site}</td>
+                        <td>
+                            <button class="btn btn-sm btn-info" onclick="printTransaction(${transaction.id})">Print</button>
+                        </td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+        }
+
+        function printTransaction(id) {
+            const transactions = JSON.parse(localStorage.getItem('transactions') || '[]');
+            const transaction = transactions.find(t => t.id === id);
+            if (transaction) {
+                generateWeighingSlip(transaction);
+            }
+        }
+
+        // ========== BACKUP FEATURE ==========
+        function downloadBackup() {
+            const data = {
+                parties: localStorage.getItem('parties'),
+                materials: localStorage.getItem('materials'),
+                vehicles: localStorage.getItem('vehicles'),
+                sites: localStorage.getItem('sites'),
+                transactions: localStorage.getItem('transactions'),
+                backupDate: new Date().toISOString()
+            };
+            
+            const dataStr = JSON.stringify(data, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `gala-sense-backup-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            
+            alert('✅ Data backup downloaded successfully!');
+        }
+
+        // ========== INITIALIZE ON LOAD ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Initializing Gala Sense...');
+            initializeStorage();
+            showSection('dashboard');
+            
+            // Set default dates
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('fromDate').value = today;
+            document.getElementById('toDate').value = today;
+            
+            console.log('Gala Sense initialized successfully!');
+        });
+    </script>
+</body>
+</html>
